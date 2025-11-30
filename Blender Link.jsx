@@ -570,7 +570,7 @@ function createKeyframePanel(parent) {
   var wholeLayerButton = rangeButtonGroup.add(
     "button",
     undefined,
-    "Whole layer"
+    "Whole Layer"
   );
   wholeLayerButton.alignment = ["fill", "center"];
   wholeLayerButton.helpTip = "Use selected layer bounds as frame range values.";
