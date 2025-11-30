@@ -35,19 +35,17 @@ def register():
     
     bpy.types.Scene.bl_camera_start_position = FloatVectorProperty(
         name="Start Position",
-        description="Position to use as the starting point for camera movement",
+        description="Position to use as the starting point (origin) for camera movement",
         subtype='TRANSLATION',
         size=3,
         default=(0.0, 0.0, 0.0)
     )
     
-    bpy.types.Scene.bl_camera_reduce_motion_factor = IntProperty(
-        name="Reduce Motion Factor",
-        description="Higher values = more motion reduction (1 = no reduction, 100 = maximum reduction)",
-        min=1,
-        max=100,
-        default=10,
-        subtype='FACTOR'
+    # Replaced IntProperty slider with a simple BoolProperty
+    bpy.types.Scene.bl_camera_reduce_motion = BoolProperty(
+        name="Reduce Motion",
+        description="Lock camera position to the 'Start Position' (uses max reduction factor)",
+        default=True
     )
     
     bpy.types.Scene.bl_camera_apply_comp_settings = BoolProperty(
@@ -58,9 +56,17 @@ def register():
 
     bpy.types.Scene.bl_camera_transparent_bg = BoolProperty(
         name="Transparent Background",
-        description="Enable transparent background rendering",
+        description="Enable transparent background rendering (film_transparent)",
         default=True
     )
+
+    # New property for the render output preset
+    bpy.types.Scene.bl_camera_set_qt_preset = BoolProperty(
+        name="Set QuickTime Transparent Preset",
+        description="Set render output to FFmpeg > QuickTime > Animation (RGBA)",
+        default=True
+    )
+
 
 def unregister():
     bpy.utils.unregister_class(BL_JSON_Item)
@@ -71,4 +77,8 @@ def unregister():
     del bpy.types.Scene.bl_camera_create_new_scene
     del bpy.types.Scene.bl_camera_enable_motion_blur
     del bpy.types.Scene.bl_camera_start_position
-    del bpy.types.Scene.bl_camera_reduce_motion_factor
+    
+    del bpy.types.Scene.bl_camera_reduce_motion
+    del bpy.types.Scene.bl_camera_apply_comp_settings
+    del bpy.types.Scene.bl_camera_transparent_bg
+    del bpy.types.Scene.bl_camera_set_qt_preset

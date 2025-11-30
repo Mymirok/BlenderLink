@@ -111,12 +111,16 @@ class BL_OT_import_item(Operator):
     
     def import_camera(self, context, camera_data):
         """Import camera data from JSON"""
+        # --- MODIFIED ---
+        # Read new/changed properties from scene
         create_new_scene = context.scene.bl_camera_create_new_scene
         apply_comp_settings = context.scene.bl_camera_apply_comp_settings
         enable_motion_blur = context.scene.bl_camera_enable_motion_blur
         transparent_bg = context.scene.bl_camera_transparent_bg
         start_position = context.scene.bl_camera_start_position
-        reduce_motion_factor = context.scene.bl_camera_reduce_motion_factor
+        reduce_motion = context.scene.bl_camera_reduce_motion # New boolean
+        set_qt_preset = context.scene.bl_camera_set_qt_preset # New boolean
+        # --- END MODIFIED ---
         
         if create_new_scene:
             # Create a new scene
@@ -145,6 +149,16 @@ class BL_OT_import_item(Operator):
         # Enable transparent background if requested
         if transparent_bg:
             scene.render.film_transparent = True
+            
+        # --- ADDED ---
+        # Apply QuickTime transparent render preset if requested
+        if set_qt_preset:
+            scene.render.image_settings.file_format = 'FFMPEG'
+            scene.render.ffmpeg.format = 'QUICKTIME'
+            scene.render.ffmpeg.codec = 'QTRLE' # QuickTime Animation
+            scene.render.image_settings.color_mode = 'RGBA'
+            scene.render.film_transparent = True # Also force this
+        # --- END ADDED ---
         
         # Create camera
         camera = bpy.data.cameras.new(name=camera_data['layer_name'])
@@ -176,14 +190,18 @@ class BL_OT_import_item(Operator):
                 scene.frame_start = 1
                 scene.frame_end = ae_end_frame - ae_start_frame + 1
             
-            # Calculate offset to make first position (0, 0, 0)
+            # --- MODIFIED (Bug/UX Fix) ---
+            # Calculate offset to make first position equal to the user's 'start_position'
             first_frame_data = frames[0]
             first_pos = first_frame_data['position']
+            
+            # The offset is (TargetBlenderPos - FirstFrameAECoordsInBlenderSpace)
             position_offset = (
-                -first_pos['x'],  # Offset to make first position 0 on X
-                -first_pos['z'],  # Offset to make first position 0 on Y (Z in AE)
-                first_pos['y']    # Offset to make first position 0 on Z (-Y in AE)
+                start_position[0] - first_pos['x'],  # Offset X
+                start_position[1] - first_pos['z'],  # Offset Y (from AE Z)
+                start_position[2] + first_pos['y']   # Offset Z (from AE Y)
             )
+            # --- END MODIFIED ---
             
             # Set keyframes for position and rotation
             for frame_data in frames:
@@ -194,7 +212,7 @@ class BL_OT_import_item(Operator):
                 # Position conversion from AE to Blender coordinate system:
                 # AE: X, Y, Z (Z is depth)
                 # Blender: X, Z, -Y (Y is up)
-                # Apply offset to make first position (0, 0, 0)
+                # Apply offset to make first position the user-defined 'start_position'
                 pos = frame_data['position']
                 camera_obj.location = (
                     pos['x'] + position_offset[0],  # X axis with offset
@@ -215,9 +233,12 @@ class BL_OT_import_item(Operator):
                 )
                 camera_obj.keyframe_insert(data_path="rotation_euler", frame=blender_frame)
             
-            # Apply motion reduction if factor is greater than 1
-            if reduce_motion_factor > 1:
-                self.apply_motion_reduction(camera_obj, reduce_motion_factor, start_position)
+            # --- MODIFIED ---
+            # Apply motion reduction if the new checkbox is enabled
+            if reduce_motion:
+                # Hard-code the factor to 100 as requested
+                self.apply_motion_reduction(camera_obj, 100, start_position)
+            # --- END MODIFIED ---
         
         self.report({'INFO'}, f"Imported camera: {camera_data['layer_name']}")
     
@@ -233,6 +254,7 @@ class BL_OT_import_item(Operator):
         normalized_factor = (reduce_motion_factor - 1) / 99.0  # Map to [0, 1]
         
         # Exponential function that gives most values in the 0.9-1.0 range
+        # For factor=100, normalized_factor=1.0, influence = 1.0 - exp(-5.5) = ~0.9959
         influence = 1.0 - exp(-5.5 * normalized_factor)
         
         # Add copy location constraint to camera with the calculated influence

@@ -45,6 +45,15 @@ class BL_PT_main_panel(Panel):
                     rows=4
                 )
                 
+                # --- MODIFIED (UX Improvement) ---
+                # Moved Import/Delete buttons to be directly under the list
+                row = layout.row()
+                row.operator("bl.import_item", icon='IMPORT', text="Import Selected")
+                
+                # Add delete button
+                row.operator("bl.delete_item", icon='TRASH', text="Delete")
+                # --- END MODIFIED ---
+                
                 # Show import options only if an item is selected
                 if 0 <= scene.bl_active_json_index < len(scene.bl_json_items):
                     selected_item = scene.bl_json_items[scene.bl_active_json_index]
@@ -57,9 +66,9 @@ class BL_PT_main_panel(Panel):
                     if selected_item.type == 'camera':
                         self.draw_camera_options(layout, scene)
                     
-                    # Import button
-                    row = layout.row()
-                    row.operator("bl.import_item", icon='IMPORT')
+                    # --- REMOVED ---
+                    # The import button was moved up
+                    # --- END REMOVED ---
             else:
                 layout.label(text="No items found in JSON file", icon='ERROR')
     
@@ -72,20 +81,27 @@ class BL_PT_main_panel(Panel):
         
         # Render settings
         box.prop(scene, "bl_camera_transparent_bg")
+        # --- ADDED ---
+        box.prop(scene, "bl_camera_set_qt_preset")
+        # --- END ADDED ---
+        
         box.prop(scene, "bl_camera_enable_motion_blur")
         
         # Camera placement
         box.prop(scene, "bl_camera_start_position")
         
         # Motion smoothing
-        box.prop(scene, "bl_camera_reduce_motion_factor", slider=True)
+        # --- MODIFIED ---
+        # Replaced slider with new checkbox
+        box.prop(scene, "bl_camera_reduce_motion")
+        # --- END MODIFIED ---
         
         # Scene creation
         box.prop(scene, "bl_camera_create_new_scene")
         
-        # Add delete button
-        row = box.row()
-        row.operator("bl.delete_item", icon='TRASH')
+        # --- REMOVED (UX Improvement) ---
+        # Delete button was moved up
+        # --- END REMOVED ---
 
 def register():
     bpy.utils.register_class(BL_UL_json_items)
